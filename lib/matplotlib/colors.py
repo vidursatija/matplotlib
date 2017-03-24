@@ -529,6 +529,17 @@ class Colormap(object):
         if vtype == 'scalar':
             rgba = tuple(rgba[0, :])
         return rgba
+    
+    def __copy__(self):
+        """Create new object with the same class and update attributes
+        If object is initialized, copy the elements of _lut list
+        """
+        cls = self.__class__
+        newCMapObj = cls.__new__(cls)
+        newCMapObj.__dict__.update(self.__dict__)
+        if self._isinit:
+            newCMapObj._lut = np.copy(self._lut)
+        return newCMapObj
 
     def set_bad(self, color='k', alpha=None):
         """Set color to be used for masked values.
@@ -1247,29 +1258,25 @@ class BoundaryNorm(Normalize):
     """
     def __init__(self, boundaries, ncolors, clip=False):
         """
-        Parameters
-        ----------
-        boundaries : array-like
-            Monotonically increasing sequence of boundaries
-        ncolors : int
-            Number of colors in the colormap to be used
-        clip : bool, optional
-            If clip is ``True``, out of range values are mapped to 0 if they
-            are below ``boundaries[0]`` or mapped to ncolors - 1 if they are
-            above ``boundaries[-1]``.
+        *boundaries*
+            a monotonically increasing sequence
+        *ncolors*
+            number of colors in the colormap to be used
 
-            If clip is ``False``, out of range values are mapped to -1 if
-            they are below ``boundaries[0]`` or mapped to ncolors if they are
-            above ``boundaries[-1]``. These are then converted to valid indices
-            by :meth:`Colormap.__call__`.
+        If::
 
-        Notes
-        -----
-        *boundaries* defines the edges of bins, and data falling within a bin
-        is mapped to the color with the same index.
+            b[i] <= v < b[i+1]
 
-        If the number of bins doesn't equal *ncolors*, the color is chosen
-        by linear interpolation of the bin number onto color numbers.
+        then v is mapped to color j;
+        as i varies from 0 to len(boundaries)-2,
+        j goes from 0 to ncolors-1.
+
+        Out-of-range values are mapped
+        to -1 if low and ncolors if high; these are converted
+        to valid indices by
+        :meth:`Colormap.__call__` .
+        If clip == True, out-of-range values
+        are mapped to 0 if low and ncolors-1 if high.
         """
         self.clip = clip
         self.vmin = boundaries[0]
@@ -1308,13 +1315,6 @@ class BoundaryNorm(Normalize):
         return ret
 
     def inverse(self, value):
-        """
-        Raises
-        ------
-        ValueError
-            BoundaryNorm is not invertible, so calling this method will always
-            raise an error
-        """
         return ValueError("BoundaryNorm is not invertible")
 
 
